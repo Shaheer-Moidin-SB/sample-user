@@ -4,6 +4,7 @@ export class LoginPayloadEvent {
     public readonly password: string,
     public readonly token: string,
     public readonly userId: string,
+    public readonly isValid: boolean,
   ) {}
 
   toString() {
@@ -12,6 +13,7 @@ export class LoginPayloadEvent {
       userId: this.userId,
       token: this.token,
       password: this.password,
+      isValid: this.isValid,
     });
   }
 }

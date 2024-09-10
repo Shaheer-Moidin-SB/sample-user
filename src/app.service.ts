@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 // import { ClientProxy } from '@nestjs/microservices';
 import { RegisterUserDto } from './dto/signup.dto';
 import * as bcrypt from 'bcryptjs';
@@ -20,22 +20,26 @@ export class AppService {
   }
 
   async signup(RegisterUserDto: RegisterUserDto) {
-    const hashedPassword = await bcrypt.hash(RegisterUserDto.password, 10);
-    const userId = Date.now().toString();
+    try {
+      const hashedPassword = await bcrypt.hash(RegisterUserDto.password, 10);
+      const userId = Date.now().toString();
 
-    const token = this.jwtService.sign({ userId });
+      const token = this.jwtService.sign({ userId });
 
-    const user = {
-      email: RegisterUserDto.email,
-      userId,
-      username: RegisterUserDto.username,
-      password: hashedPassword,
-      token: token,
-    };
+      const user = {
+        email: RegisterUserDto.email,
+        userId,
+        username: RegisterUserDto.username,
+        password: hashedPassword,
+        token: token,
+      };
 
-    this.users.set(RegisterUserDto.email, user);
-    // await this.redisService.setSession(userId, token);
-    return user;
+      this.users.set(RegisterUserDto.email, user);
+      // await this.redisService.setSession(userId, token);
+      return user;
+    } catch (oError) {
+      throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
+    }
   }
 
   async login(LoginPayloadEvent: LoginPayloadEvent): Promise<string | null> {
@@ -57,5 +61,23 @@ export class AppService {
     );
     console.log(redisResponded);
     return user;
+  }
+
+  async adminRevokeUserAccess(LoginPayloadEvent: LoginPayloadEvent) {
+    try {
+      const user = this.users.get(LoginPayloadEvent.email);
+      const updateUser = { ...user };
+      if (!user)
+        throw new HttpException('User Not Found', HttpStatus.NOT_FOUND);
+      updateUser.isValid = false;
+      this.users.set(LoginPayloadEvent.email, updateUser);
+      const redisResponded = await this.redisService.addToBlacklist(
+        updateUser.userId,
+        updateUser.token,
+      );
+      return redisResponded;
+    } catch (oError) {
+      throw new HttpException(oError, HttpStatus.FORBIDDEN);
+    }
   }
 }

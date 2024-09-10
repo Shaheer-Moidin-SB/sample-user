@@ -35,18 +35,29 @@ export class SessionRedisService {
 
   // Store the session token in Redis
   async setSession(userId: string, token: string): Promise<string | null> {
-    await this.redisClient.set(userId, token); // Set with expiration (1 hour)
+    await this.redisClient.set(`session:${userId}`, token); // Set with expiration (1 hour)
     return 'Session Saved';
   }
 
   // Retrieve the session token from Redis
   async getSession(userId: string): Promise<string | null> {
-    return await this.redisClient.get(userId);
+    return await this.redisClient.get(`session:${userId}`);
   }
 
   // Delete the session (optional, e.g., for logout)
   async deleteSession(userId: string): Promise<number | null> {
-    return await this.redisClient.del(userId);
+    return await this.redisClient.del(`session:${userId}`);
+  }
+
+  // Delete the blacklisted session (optional, e.g., for logout)
+  async removeFromBlacklist(userId: string): Promise<number | null> {
+    return await this.redisClient.del(`blacklist:${userId}`);
+  }
+
+  // Blacklist methods
+  async addToBlacklist(userId: string, token: string): Promise<string | null> {
+    await this.redisClient.sadd(`blacklist:${userId}`, token);
+    return 'User Blacklisted';
   }
 
   //clear all data from session storage

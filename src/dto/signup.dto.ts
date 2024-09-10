@@ -4,4 +4,5 @@ export class RegisterUserDto {
   token: string;
   userId: string;
   password: string;
+  isValid: boolean;
 }

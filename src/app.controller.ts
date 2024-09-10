@@ -1,9 +1,15 @@
-import { Body, Controller, Get, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpException,
+  HttpStatus,
+  Post,
+} from '@nestjs/common';
 import { AppService } from './app.service';
 import { RegisterUserDto } from './dto/signup.dto';
 import { RpcException } from '@nestjs/microservices';
 import { LoginPayloadEvent } from './dto/login.dto';
-
 @Controller()
 export class AppController {
   constructor(private readonly appService: AppService) {}
@@ -28,6 +34,15 @@ export class AppController {
       return await this.appService.login(LoginPayloadEvent);
     } catch (oError) {
       throw new RpcException(oError);
+    }
+  }
+
+  @Post('admin-suspend-user')
+  async adminRevokeUserAccess(@Body() LoginPayloadEvent: LoginPayloadEvent) {
+    try {
+      return await this.appService.adminRevokeUserAccess(LoginPayloadEvent);
+    } catch (oError) {
+      throw new HttpException(oError, HttpStatus.FORBIDDEN);
     }
   }
 }

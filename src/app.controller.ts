@@ -4,15 +4,25 @@ import {
   Get,
   HttpException,
   HttpStatus,
+  Param,
   Post,
+  Inject,
+  OnModuleInit,
+  UseGuards,
 } from '@nestjs/common';
 import { AppService } from './app.service';
 import { RegisterUserDto } from './dto/signup.dto';
 import { RpcException } from '@nestjs/microservices';
 import { LoginPayloadEvent } from './dto/login.dto';
+import { ClientKafka } from '@nestjs/microservices';
+import { AuthGuard } from './guards/auth.guard';
+import { AuthFlag } from './decorators/auth-flag.decorator';
 @Controller()
-export class AppController {
-  constructor(private readonly appService: AppService) {}
+export class AppController implements OnModuleInit {
+  constructor(
+    private readonly appService: AppService,
+    @Inject('AUTH_SERVICE') private authClient: ClientKafka,
+  ) {}
 
   @Get()
   getHello(): string {
@@ -44,5 +54,16 @@ export class AppController {
     } catch (oError) {
       throw new HttpException(oError, HttpStatus.FORBIDDEN);
     }
+  }
+
+  @Get('get-user-profile/:id')
+  @UseGuards(AuthGuard)
+  @AuthFlag('privateRoute')
+  async getAdminById(@Param('id') LoginPayloadEvent: LoginPayloadEvent) {
+    return await this.appService.getUserProfileById(LoginPayloadEvent);
+  }
+
+  onModuleInit() {
+    this.authClient.subscribeToResponseOf('authorize_user');
   }
 }

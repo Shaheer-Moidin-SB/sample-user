@@ -34,7 +34,7 @@ export class AppService {
         token: token,
       };
 
-      this.users.set(RegisterUserDto.email, user);
+      this.users.set(RegisterUserDto.userId, user);
       // await this.redisService.setSession(userId, token);
       return user;
     } catch (oError) {
@@ -43,7 +43,7 @@ export class AppService {
   }
 
   async login(LoginPayloadEvent: LoginPayloadEvent): Promise<string | null> {
-    const user = this.users.get(LoginPayloadEvent.email);
+    const user = this.users.get(LoginPayloadEvent.userId);
     if (!user) {
       // const redisCleared = await this.redisService.clearAllData();
       return null;
@@ -65,17 +65,26 @@ export class AppService {
 
   async adminRevokeUserAccess(LoginPayloadEvent: LoginPayloadEvent) {
     try {
-      const user = this.users.get(LoginPayloadEvent.email);
+      const user = this.users.get(LoginPayloadEvent.userId);
       const updateUser = { ...user };
       if (!user)
         throw new HttpException('User Not Found', HttpStatus.NOT_FOUND);
       updateUser.isValid = false;
-      this.users.set(LoginPayloadEvent.email, updateUser);
+      this.users.set(LoginPayloadEvent.userId, updateUser);
       const redisResponded = await this.redisService.addToBlacklist(
         updateUser.userId,
         updateUser.token,
       );
       return redisResponded;
+    } catch (oError) {
+      throw new HttpException(oError, HttpStatus.FORBIDDEN);
+    }
+  }
+
+  async getUserProfileById(LoginPayloadEvent: LoginPayloadEvent) {
+    try {
+      const oUser = this.users.get(LoginPayloadEvent.userId);
+      return oUser;
     } catch (oError) {
       throw new HttpException(oError, HttpStatus.FORBIDDEN);
     }
